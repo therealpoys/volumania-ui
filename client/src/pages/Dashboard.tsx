@@ -7,7 +7,7 @@ import { Plus, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PVCDashboard from "@/components/PVCDashboard";
 import AutoScalerForm from "@/components/AutoScalerForm";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useRealTimeUpdates } from "@/hooks/useWebSocket";
 import type { InsertAutoScaler } from "@shared/schema";
 
 export default function Dashboard() {
@@ -16,34 +16,20 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Use WebSocket for real-time PVC updates
-  const { pvcs, connected, error: wsError, reconnect } = useWebSocket();
+  // Use real-time updates (mock or WebSocket)
+  const { pvcs, connected, error: wsError, reconnect, isMockMode } = useRealTimeUpdates();
   const pvcsLoading = !connected && pvcs.length === 0;
 
-  // Create autoscaler mutation
+  // Create autoscaler mutation using API service
   const createAutoScalerMutation = useMutation({
     mutationFn: async (data: InsertAutoScaler) => {
-      const response = await fetch('/api/autoscalers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to create autoscaler: ${response.status}`);
-      }
-      
-      return response.json();
+      const { apiService } = await import('@/services/apiService');
+      return await apiService.createAutoScaler(data);
     },
     onSuccess: (result) => {
       toast({
         title: "AutoScaler created successfully",
-        description: result.warning ? 
-          "Created locally, but Kubernetes integration may be limited" :
-          "AutoScaler is now active in your cluster",
+        description: "AutoScaler has been created and is now active",
       });
       
       // Refresh PVC data to show updated autoscaler status
@@ -138,7 +124,7 @@ export default function Dashboard() {
                 : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
             }`} data-testid="connection-status">
               {connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {connected ? 'Live' : 'Offline'}
+              {connected ? (isMockMode ? 'Mock' : 'Live') : 'Offline'}
             </div>
           </div>
           <p className="text-muted-foreground">

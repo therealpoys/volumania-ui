@@ -1,6 +1,6 @@
-import type { PVC } from "@shared/schema";
+import type { PVC, AutoScaler } from "@shared/schema";
 
-// Mock PVC data for development when Kubernetes is not available
+// Mock PVC data for development/testing
 export const mockPVCs: PVC[] = [
   {
     id: "production/postgres-data",
@@ -85,5 +85,54 @@ export const mockPVCs: PVC[] = [
     accessModes: ["ReadWriteOnce"],
     hasAutoscaler: false,
     createdAt: "2024-01-20T08:30:00Z"
+  }
+];
+
+// Mock AutoScaler data
+export const mockAutoScalers: AutoScaler[] = [
+  {
+    id: "as-1",
+    name: "postgres-autoscaler",
+    namespace: "production",
+    pvcName: "postgres-data",
+    minSize: "20Gi",
+    maxSize: "500Gi", 
+    stepSize: "10Gi",
+    triggerAbovePercent: 80,
+    checkIntervalSeconds: 300,
+    cooldownSeconds: 900,
+    status: "Active",
+    lastScaleTime: "2024-01-20T12:30:00Z",
+    createdAt: "2024-01-15T10:30:00Z"
+  },
+  {
+    id: "as-2",
+    name: "logs-autoscaler",
+    namespace: "staging",
+    pvcName: "app-logs",
+    minSize: "50Gi",
+    maxSize: "1Ti",
+    stepSize: "50Gi", 
+    triggerAbovePercent: 85,
+    checkIntervalSeconds: 600,
+    cooldownSeconds: 1800,
+    status: "Active",
+    lastScaleTime: undefined,
+    createdAt: "2024-01-08T09:15:00Z"
+  },
+  {
+    id: "as-3",
+    name: "elasticsearch-autoscaler",
+    namespace: "logging",
+    pvcName: "elasticsearch-data",
+    minSize: "100Gi",
+    maxSize: "2Ti",
+    stepSize: "100Gi",
+    triggerAbovePercent: 75,
+    checkIntervalSeconds: 300,
+    cooldownSeconds: 1200,
+    status: "Active", 
+    lastScaleTime: "2024-01-19T08:45:00Z",
+    createdAt: "2024-01-12T11:00:00Z"
   }
 ];
