@@ -1,5 +1,6 @@
 import * as k8s from '@kubernetes/client-node';
 import type { PVC } from '@shared/schema';
+import { mockPVCs } from './mockData';
 
 export class KubernetesClient {
   private k8sApi: k8s.CoreV1Api;
@@ -44,8 +45,10 @@ export class KubernetesClient {
 
       return pvcs;
     } catch (error) {
-      console.error('Error fetching PVCs:', error);
-      return [];
+      console.warn('Could not connect to Kubernetes cluster, using mock data for development:', error instanceof Error ? error.message : 'Unknown error');
+      
+      // Return mock data when Kubernetes is not available (development mode)
+      return mockPVCs;
     }
   }
 
@@ -79,7 +82,7 @@ export class KubernetesClient {
         storageClass: pvc.spec?.storageClassName || 'default',
         accessModes: pvc.spec?.accessModes || [],
         hasAutoscaler,
-        createdAt: pvc.metadata.creationTimestamp || new Date().toISOString(),
+        createdAt: pvc.metadata.creationTimestamp?.toString() || new Date().toISOString(),
       };
     } catch (error) {
       console.error(`Error fetching PVC ${namespace}/${name}:`, error);

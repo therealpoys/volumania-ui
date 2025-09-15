@@ -12,9 +12,10 @@ interface PVCDashboardProps {
   pvcs: PVC[];
   onCreateAutoscaler?: (pvcName: string) => void;
   onViewDetails?: (pvcId: string) => void;
+  isLoading?: boolean;
 }
 
-export default function PVCDashboard({ pvcs, onCreateAutoscaler, onViewDetails }: PVCDashboardProps) {
+export default function PVCDashboard({ pvcs, onCreateAutoscaler, onViewDetails, isLoading = false }: PVCDashboardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedNamespace, setSelectedNamespace] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -141,14 +142,22 @@ export default function PVCDashboard({ pvcs, onCreateAutoscaler, onViewDetails }
           </div>
 
           {/* PVC Grid */}
-          {filteredPVCs.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Loading PVCs...</h3>
+              <p className="text-muted-foreground">
+                Fetching data from your Kubernetes cluster
+              </p>
+            </div>
+          ) : filteredPVCs.length === 0 ? (
             <div className="text-center py-12">
               <HardDrive className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No PVCs found</h3>
               <p className="text-muted-foreground">
                 {searchTerm || selectedNamespace !== "all" || statusFilter !== "all" 
                   ? "Try adjusting your filters" 
-                  : "No PVCs are currently available"}
+                  : "No PVCs are currently available in your cluster"}
               </p>
             </div>
           ) : (

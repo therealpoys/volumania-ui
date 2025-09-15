@@ -1,104 +1,79 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import PVCDashboard from "@/components/PVCDashboard";
 import AutoScalerForm from "@/components/AutoScalerForm";
 import type { PVC, InsertAutoScaler } from "@shared/schema";
 
-//todo: remove mock functionality
-const mockPVCs: PVC[] = [
-  {
-    id: "pvc-1",
-    name: "postgres-data",
-    namespace: "production",
-    size: "50Gi",
-    usedBytes: 32 * 1024 * 1024 * 1024,
-    totalBytes: 50 * 1024 * 1024 * 1024,
-    usagePercent: 64,
-    status: "Bound",
-    storageClass: "gp3",
-    accessModes: ["ReadWriteOnce"],
-    hasAutoscaler: true,
-    createdAt: "2024-01-15T10:30:00Z"
-  },
-  {
-    id: "pvc-2", 
-    name: "redis-cache",
-    namespace: "production",
-    size: "20Gi",
-    usedBytes: 18 * 1024 * 1024 * 1024,
-    totalBytes: 20 * 1024 * 1024 * 1024,
-    usagePercent: 90,
-    status: "Bound",
-    storageClass: "gp3",
-    accessModes: ["ReadWriteOnce"],
-    hasAutoscaler: false,
-    createdAt: "2024-01-10T14:20:00Z"
-  },
-  {
-    id: "pvc-3",
-    name: "app-logs",
-    namespace: "staging",
-    size: "100Gi",
-    usedBytes: 35 * 1024 * 1024 * 1024,
-    totalBytes: 100 * 1024 * 1024 * 1024,
-    usagePercent: 35,
-    status: "Bound",
-    storageClass: "gp2",
-    accessModes: ["ReadWriteMany"],
-    hasAutoscaler: true,
-    createdAt: "2024-01-08T09:15:00Z"
-  },
-  {
-    id: "pvc-4",
-    name: "backup-storage",
-    namespace: "ops",
-    size: "500Gi",
-    usedBytes: 450 * 1024 * 1024 * 1024,
-    totalBytes: 500 * 1024 * 1024 * 1024,
-    usagePercent: 90,
-    status: "Bound",
-    storageClass: "cold",
-    accessModes: ["ReadWriteOnce"],
-    hasAutoscaler: false,
-    createdAt: "2024-01-05T16:45:00Z"
-  },
-  {
-    id: "pvc-5",
-    name: "elasticsearch-data",
-    namespace: "logging",
-    size: "200Gi",
-    usedBytes: 150 * 1024 * 1024 * 1024,
-    totalBytes: 200 * 1024 * 1024 * 1024,
-    usagePercent: 75,
-    status: "Bound",
-    storageClass: "gp3",
-    accessModes: ["ReadWriteOnce"],
-    hasAutoscaler: true,
-    createdAt: "2024-01-12T11:00:00Z"
-  },
-  {
-    id: "pvc-6",
-    name: "metrics-storage",
-    namespace: "monitoring",
-    size: "80Gi",
-    usedBytes: 10 * 1024 * 1024 * 1024,
-    totalBytes: 80 * 1024 * 1024 * 1024,
-    usagePercent: 12.5,
-    status: "Bound",
-    storageClass: "gp2",
-    accessModes: ["ReadWriteOnce"],
-    hasAutoscaler: false,
-    createdAt: "2024-01-20T08:30:00Z"
-  }
-];
-
 export default function Dashboard() {
-  const [pvcs, setPvcs] = useState<PVC[]>(mockPVCs);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedPvcForAutoscaler, setSelectedPvcForAutoscaler] = useState<string>("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch PVCs from API
+  const { 
+    data: pvcs = [], 
+    isLoading: pvcsLoading, 
+    error: pvcsError,
+    refetch: refetchPVCs
+  } = useQuery({
+    queryKey: ['/api/pvcs'],
+    queryFn: async () => {
+      const response = await fetch('/api/pvcs');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch PVCs: ${response.status}`);
+      }
+      return response.json() as Promise<PVC[]>;
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  // Create autoscaler mutation
+  const createAutoScalerMutation = useMutation({
+    mutationFn: async (data: InsertAutoScaler) => {
+      const response = await fetch('/api/autoscalers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to create autoscaler: ${response.status}`);
+      }
+      
+      return response.json();
+    },
+    onSuccess: (result) => {
+      toast({
+        title: "AutoScaler created successfully",
+        description: result.warning ? 
+          "Created locally, but Kubernetes integration may be limited" :
+          "AutoScaler is now active in your cluster",
+      });
+      
+      // Refresh PVC data to show updated autoscaler status
+      queryClient.invalidateQueries({ queryKey: ['/api/pvcs'] });
+      
+      setShowCreateForm(false);
+      setSelectedPvcForAutoscaler("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create AutoScaler",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleCreateAutoscaler = (pvcName: string) => {
     setSelectedPvcForAutoscaler(pvcName);
@@ -107,21 +82,14 @@ export default function Dashboard() {
 
   const handleViewDetails = (pvcId: string) => {
     console.log('View details for PVC:', pvcId);
-    // todo: remove mock functionality - implement actual details view
+    toast({
+      title: "PVC Details",
+      description: "Detailed view coming soon!",
+    });
   };
 
   const handleSubmitAutoscaler = (data: InsertAutoScaler) => {
-    console.log('Creating autoscaler:', data);
-    
-    // todo: remove mock functionality - update PVC to show it has autoscaler
-    setPvcs(prev => prev.map(pvc => 
-      pvc.name === data.pvcName && pvc.namespace === data.namespace
-        ? { ...pvc, hasAutoscaler: true }
-        : pvc
-    ));
-    
-    setShowCreateForm(false);
-    setSelectedPvcForAutoscaler("");
+    createAutoScalerMutation.mutate(data);
   };
 
   const handleCancelForm = () => {
@@ -130,6 +98,47 @@ export default function Dashboard() {
   };
 
   const selectedPvc = pvcs.find(pvc => pvc.name === selectedPvcForAutoscaler);
+
+  // Show error state if PVCs failed to load
+  if (pvcsError) {
+    return (
+      <div className="space-y-6" data-testid="dashboard-error">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Volumania Dashboard</h1>
+            <p className="text-muted-foreground">
+              Manage your Kubernetes PVC autoscaling with ease
+            </p>
+          </div>
+        </div>
+
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Failed to Connect to Kubernetes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              {(pvcsError as Error).message}
+            </p>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Common solutions:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-4">
+                <li>• Ensure you have a valid kubeconfig file</li>
+                <li>• Check if you're running inside a Kubernetes cluster with proper RBAC</li>
+                <li>• Verify the Volumania operator is installed in your cluster</li>
+              </ul>
+            </div>
+            <Button onClick={() => refetchPVCs()} data-testid="button-retry">
+              Retry Connection
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" data-testid="dashboard-page">
@@ -157,6 +166,7 @@ export default function Dashboard() {
               onCancel={handleCancelForm}
               pvcName={selectedPvc?.name}
               namespace={selectedPvc?.namespace}
+              isSubmitting={createAutoScalerMutation.isPending}
             />
           </DialogContent>
         </Dialog>
@@ -166,6 +176,7 @@ export default function Dashboard() {
         pvcs={pvcs}
         onCreateAutoscaler={handleCreateAutoscaler}
         onViewDetails={handleViewDetails}
+        isLoading={pvcsLoading}
       />
     </div>
   );
