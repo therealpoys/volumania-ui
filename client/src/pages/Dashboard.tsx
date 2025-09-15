@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import PVCDashboard from "@/components/PVCDashboard";
 import AutoScalerForm from "@/components/AutoScalerForm";
-import type { PVC, InsertAutoScaler } from "@shared/schema";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import type { InsertAutoScaler } from "@shared/schema";
 
 export default function Dashboard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -15,24 +16,9 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch PVCs from API
-  const { 
-    data: pvcs = [], 
-    isLoading: pvcsLoading, 
-    error: pvcsError,
-    refetch: refetchPVCs
-  } = useQuery({
-    queryKey: ['/api/pvcs'],
-    queryFn: async () => {
-      const response = await fetch('/api/pvcs');
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch PVCs: ${response.status}`);
-      }
-      return response.json() as Promise<PVC[]>;
-    },
-    refetchInterval: 30000, // Refetch every 30 seconds
-  });
+  // Use WebSocket for real-time PVC updates
+  const { pvcs, connected, error: wsError, reconnect } = useWebSocket();
+  const pvcsLoading = !connected && pvcs.length === 0;
 
   // Create autoscaler mutation
   const createAutoScalerMutation = useMutation({
@@ -99,8 +85,8 @@ export default function Dashboard() {
 
   const selectedPvc = pvcs.find(pvc => pvc.name === selectedPvcForAutoscaler);
 
-  // Show error state if PVCs failed to load
-  if (pvcsError) {
+  // Show error state if WebSocket connection failed
+  if (wsError && !connected) {
     return (
       <div className="space-y-6" data-testid="dashboard-error">
         <div className="flex items-center justify-between">
@@ -121,7 +107,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              {(pvcsError as Error).message}
+              {wsError}
             </p>
             <div className="space-y-2">
               <p className="text-sm font-medium">Common solutions:</p>
@@ -131,7 +117,7 @@ export default function Dashboard() {
                 <li>• Verify the Volumania operator is installed in your cluster</li>
               </ul>
             </div>
-            <Button onClick={() => refetchPVCs()} data-testid="button-retry">
+            <Button onClick={reconnect} data-testid="button-retry">
               Retry Connection
             </Button>
           </CardContent>
@@ -144,7 +130,17 @@ export default function Dashboard() {
     <div className="space-y-6" data-testid="dashboard-page">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Volumania Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Volumania Dashboard</h1>
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+              connected 
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+            }`} data-testid="connection-status">
+              {connected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {connected ? 'Live' : 'Offline'}
+            </div>
+          </div>
           <p className="text-muted-foreground">
             Manage your Kubernetes PVC autoscaling with ease
           </p>

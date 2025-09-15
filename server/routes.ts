@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { k8sClient } from "./kubernetes";
 import { insertAutoScalerSchema } from "@shared/schema";
@@ -168,6 +169,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Set up WebSocket server for real-time updates on a specific path
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/api/ws'
+  });
+  
+  // Store connected clients
+  const clients = new Set();
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    clients.add(ws);
+    
+    // Send initial PVC data
+    k8sClient.getAllPVCs().then(pvcs => {
+      ws.send(JSON.stringify({ type: 'pvc-update', data: pvcs }));
+    }).catch(err => {
+      console.error('Error sending initial PVC data:', err);
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      clients.delete(ws);
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      clients.delete(ws);
+    });
+  });
+  
+  // Broadcast PVC updates every 30 seconds
+  const broadcastPVCUpdates = async () => {
+    if (clients.size === 0) return;
+    
+    try {
+      const pvcs = await k8sClient.getAllPVCs();
+      const message = JSON.stringify({ type: 'pvc-update', data: pvcs });
+      
+      clients.forEach((client: any) => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+          client.send(message);
+        }
+      });
+    } catch (error) {
+      console.error('Error broadcasting PVC updates:', error);
+    }
+  };
+  
+  // Start periodic updates
+  setInterval(broadcastPVCUpdates, 30000); // Every 30 seconds
 
   return httpServer;
 }
