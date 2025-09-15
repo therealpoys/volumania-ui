@@ -8,9 +8,14 @@ export function useRealTimeUpdates() {
   const [error, setError] = useState<string | null>(null);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  const connect = () => {
+  const connect = async () => {
     try {
       setError(null);
+      
+      // Get initial data immediately
+      const initialPvcs = await apiService.getAllPVCs();
+      setPvcs(initialPvcs);
+      setConnected(true);
       
       // Start real-time updates (either mock or WebSocket)
       const cleanup = apiService.onPVCUpdates((updatedPvcs) => {
@@ -30,7 +35,11 @@ export function useRealTimeUpdates() {
   };
 
   useEffect(() => {
-    connect();
+    connect().catch((err) => {
+      console.error('Failed to initialize real-time updates:', err);
+      setError('Failed to initialize connection');
+      setConnected(false);
+    });
 
     return () => {
       if (cleanupRef.current) {

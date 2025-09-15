@@ -32,8 +32,11 @@ export default function Dashboard() {
         description: "AutoScaler has been created and is now active",
       });
       
-      // Refresh PVC data to show updated autoscaler status
-      queryClient.invalidateQueries({ queryKey: ['/api/pvcs'] });
+      // Force reconnect to refresh real-time data
+      reconnect();
+      
+      // Also invalidate any potential queries
+      queryClient.invalidateQueries({ queryKey: ['pvcs'] });
       
       setShowCreateForm(false);
       setSelectedPvcForAutoscaler("");

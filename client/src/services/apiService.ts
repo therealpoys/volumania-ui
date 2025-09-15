@@ -7,8 +7,8 @@ export const API_CONFIG = {
   USE_MOCK: true,
   
   // Base URL for real API (when USE_MOCK is false)
-  BASE_URL: process.env.NODE_ENV === 'production' 
-    ? 'https://your-backend-api.com' 
+  BASE_URL: import.meta.env.MODE === 'production' 
+    ? (import.meta.env.VITE_API_BASE_URL || 'https://your-backend-api.com') 
     : 'http://localhost:3001'
 };
 

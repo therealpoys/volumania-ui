@@ -20,7 +20,7 @@ Get the health status of the API server.
 **Response:**
 ```json
 {
-  "status": "ok",
+  "status": "healthy",
   "timestamp": "2024-01-15T14:30:00Z",
   "version": "1.0.0"
 }
@@ -40,7 +40,8 @@ Get all PVCs across all namespaces.
     "namespace": "production",
     "status": "Bound",
     "size": "20Gi",
-    "usedSpace": "12Gi",
+    "usedBytes": 12884901888,
+    "totalBytes": 21474836480,
     "usagePercent": 60,
     "storageClass": "gp3",
     "accessModes": ["ReadWriteOnce"],
@@ -65,7 +66,8 @@ Get a specific PVC by namespace and name.
   "namespace": "production",
   "status": "Bound",
   "size": "20Gi",
-  "usedSpace": "12Gi",
+  "usedBytes": 12884901888,
+  "totalBytes": 21474836480,
   "usagePercent": 60,
   "storageClass": "gp3",
   "accessModes": ["ReadWriteOnce"],
@@ -204,7 +206,8 @@ The WebSocket sends updates for PVC data changes:
       "namespace": "production",
       "status": "Bound",
       "size": "25Gi",
-      "usedSpace": "15Gi",
+      "usedBytes": 16106127360,
+      "totalBytes": 26843545600,
       "usagePercent": 60,
       "storageClass": "gp3",
       "accessModes": ["ReadWriteOnce"],
@@ -243,7 +246,8 @@ interface PVC {
   namespace: string;
   status: "Bound" | "Pending" | "Lost";
   size: string;              // e.g., "20Gi"
-  usedSpace: string;         // e.g., "12Gi"  
+  usedBytes: number;         // bytes as number
+  totalBytes: number;        // bytes as number  
   usagePercent: number;      // 0-100
   storageClass: string;
   accessModes: string[];
