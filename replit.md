@@ -2,7 +2,7 @@
 
 ## Overview
 
-Volumania is a Kubernetes-focused web application that provides automated scaling and management for Persistent Volume Claims (PVCs). The application offers real-time monitoring of storage usage across Kubernetes clusters and enables users to create and manage autoscalers that automatically resize PVCs when they approach capacity limits. Built with a modern full-stack architecture, it serves as an enterprise-grade DevOps tool for managing Kubernetes storage resources efficiently.
+Volumania is a frontend-only web application that demonstrates a user interface for Kubernetes PVC (Persistent Volume Claim) management and autoscaling. The application provides a modern dashboard for viewing storage usage and creating autoscalers, using mock data to simulate Kubernetes cluster interactions. Built with a React-based frontend architecture, it serves as a prototype for DevOps tools focused on storage resource management.
 
 ## User Preferences
 
@@ -18,36 +18,19 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: Wouter for lightweight client-side routing
 - **Theme System**: Custom dark/light mode implementation with CSS custom properties
 
-### Backend Architecture  
-- **Node.js/Express**: RESTful API server with TypeScript for type safety
-- **Kubernetes Integration**: Official Kubernetes client library (@kubernetes/client-node) for cluster communication
-- **Real-time Communication**: WebSocket server for live PVC status updates and monitoring
-- **Development Mode**: Mock data system when Kubernetes cluster is unavailable for local development
-- **API Design**: Resource-based endpoints (/api/pvcs, /api/autoscalers) with proper error handling
-
-### Data Storage Solutions
-- **Primary Database**: PostgreSQL with Drizzle ORM for type-safe database operations
-- **Schema Management**: Shared TypeScript schemas with Zod validation for consistent data models
-- **In-Memory Storage**: Fallback storage interface for development and testing scenarios
-- **Session Management**: PostgreSQL-backed session store using connect-pg-simple
-
-### Authentication and Authorization
-- **Session-based Auth**: Traditional session cookies with PostgreSQL storage
-- **Development Mode**: Simplified authentication for local development
-- **Security Headers**: Proper CORS and security middleware configuration
+### Mock Data Architecture
+- **Frontend-only Setup**: No backend server required - runs entirely in the browser
+- **Mock API Service**: Simulates backend API calls with realistic data and timing
+- **Type-safe Mocking**: Uses shared TypeScript schemas for consistent mock data generation
+- **Real-time Simulation**: Mock updates to PVC status and usage metrics for demonstration purposes
+- **API Specification**: Complete documentation for future backend implementation
 
 ## External Dependencies
 
-### Kubernetes Integration
-- **@kubernetes/client-node**: Official Kubernetes JavaScript client for cluster API communication
-- **Cluster Configuration**: Supports in-cluster, kubeconfig file, and environment variable configuration methods
-- **Metrics API**: Integration with Kubernetes metrics server for storage usage data
-- **Custom Resources**: Support for custom autoscaler resources and operators
-
-### Database and Storage
-- **@neondatabase/serverless**: Neon PostgreSQL serverless driver for database connectivity
-- **Drizzle ORM**: Type-safe ORM with PostgreSQL dialect for database operations
-- **connect-pg-simple**: PostgreSQL session store for Express sessions
+### Mock Data System
+- **Simulated Kubernetes Data**: Realistic PVC and AutoScaler mock data that mimics real cluster resources
+- **Type Safety**: All mock data follows the same TypeScript schemas as real implementations would
+- **Dynamic Updates**: Periodic updates to storage usage and status to simulate live cluster activity
 
 ### UI and Styling
 - **shadcn/ui**: Complete component library built on Radix UI primitives
@@ -57,12 +40,12 @@ Preferred communication style: Simple, everyday language.
 - **Google Fonts**: Inter and JetBrains Mono for professional typography
 
 ### Development and Build Tools
-- **Vite**: Fast build tool with React plugin and development server
-- **TypeScript**: Type safety across frontend, backend, and shared code
-- **ESBuild**: Fast bundler for production server builds
+- **Vite**: Fast build tool with React plugin for frontend development and production builds
+- **TypeScript**: Full type safety across frontend and shared schema definitions
 - **PostCSS**: CSS processing with Tailwind and Autoprefixer plugins
+- **TSX**: TypeScript execution for the simple Vite server
 
-### Real-time Features
-- **WebSocket (ws)**: Native WebSocket server for real-time PVC updates
-- **TanStack Query**: Client-side caching and synchronization with server state
+### Frontend Features
+- **TanStack Query**: Client-side state management with mock API integration
 - **React Hook Form**: Form validation and state management with Zod resolvers
+- **Mock Real-time Updates**: Simulated live data updates for demonstration purposes
