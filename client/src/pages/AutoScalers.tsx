@@ -141,7 +141,6 @@ export default function AutoScalers() {
               <AutoScalerForm
                 onSubmit={handleCreateSubmit}
                 onCancel={() => setShowCreateForm(false)}
-                availablePVCs={pvcs.filter(pvc => !pvc.hasAutoscaler)}
               />
             </DialogContent>
           </Dialog>
