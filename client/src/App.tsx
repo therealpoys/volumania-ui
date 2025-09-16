@@ -7,15 +7,18 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import ThemeToggle from "@/components/ThemeToggle";
 import Dashboard from "@/pages/Dashboard";
+import PVCs from "@/pages/PVCs";
+import AutoScalers from "@/pages/AutoScalers";
+import Monitoring from "@/pages/Monitoring";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/pvcs" component={Dashboard} />
-      <Route path="/autoscalers" component={Dashboard} />
-      <Route path="/monitoring" component={Dashboard} />
+      <Route path="/pvcs" component={PVCs} />
+      <Route path="/autoscalers" component={AutoScalers} />
+      <Route path="/monitoring" component={Monitoring} />
       <Route component={NotFound} />
     </Switch>
   );
